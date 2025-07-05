@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>哔哩哔哩沉浸式播放器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .controls {
+            background: rgba(255,255,255,0.9);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .login-section {
+            background: rgba(255,255,255,0.9);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+
+        .qr-container {
+            margin-top: 20px;
+        }
+
+        .qr-img {
+            width: 200px;
+            height: 200px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            margin: 0 auto;
+            display: block;
+            background: #f8f9fa;
+        }
+
+        .login-status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .login-status.waiting {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .login-status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .login-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .favorites-list {
+            background: rgba(255,255,255,0.9);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .video-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .video-item:hover {
+            background: #e9ecef;
+            transform: translateX(5px);
+            border-color: #667eea;
+        }
+
+        .video-item.active {
+            background: #667eea;
+            color: white;
+            border-color: #764ba2;
+        }
+
+        .video-thumbnail {
+            width: 120px;
+            height: 68px;
+            background: #ddd;
+            border-radius: 8px;
+            margin-right: 15px;
+            flex-shrink: 0;
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .video-info {
+            flex: 1;
+        }
+
+        .video-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+
+        .video-author {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .video-item.active .video-author {
+            color: #ddd;
+        }
+
+        .player-container {
+            background: rgba(255,255,255,0.9);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .player-wrapper {
+            position: relative;
+            width: 100%;
+            height: 0;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .player-wrapper iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .current-video-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .current-video-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .current-video-author {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .tips {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+        }
+
+        .tips h3 {
+            margin-bottom: 10px;
+        }
+
+        .tips ol {
+            margin-left: 20px;
+        }
+
+        .tips li {
+            margin-bottom: 5px;
+        }
+
+        .player-controls {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .player-controls .btn {
+            margin: 0 5px;
+            padding: 8px 15px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .video-item {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .video-thumbnail {
+                margin-right: 0;
+                margin-bottom: 10px;
+            }
+
+            .qr-img {
+                width: 150px;
+                height: 150px;
+            }
+        }
+
+        .debug-info {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 哔哩哔哩沉浸式播放器</h1>
+            <p>专注于你的收藏，无干扰纯净播放体验</p>
+        </div>
+
+        <div class="tips">
+            <h3>📝 使用说明：</h3>
+            <ol>
+                <li>可以选择扫码登录获取私有收藏夹，或直接输入用户ID获取公开收藏夹</li>
+                <li>输入哔哩哔哩用户ID（可在个人主页URL中找到）</li>
+                <li>点击"获取收藏夹"加载收藏夹列表</li>
+                <li>选择要播放的收藏夹</li>
+                <li>点击视频开始沉浸式播放</li>
+            </ol>
+            <p><strong>注意：</strong> 需要配合后端API使用。如果只想体验功能，可以点击"加载演示数据"。</p>
+        </div>
+
+        <!-- 登录区域 -->
+        <div class="login-section">
+            <h3>🔐 B站登录</h3>
+            <p>扫码登录后可获取私有收藏夹</p>
+            <button class="btn" id="btn-login">扫码登录 B 站</button>
+            <div class="qr-container" id="qr-container" style="display:none;">
+                <img id="qr-img" class="qr-img" alt="二维码" />
+                <div id="login-status" class="login-status"></div>
+                <div id="debug-info" class="debug-info" style="display:none;"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="input-group">
+                <label for="userId">哔哩哔哩用户ID:</label>
+                <input type="text" id="userId" placeholder="请输入你的B站用户ID" value="">
+            </div>
+            <button class="btn" onclick="loadFavorites()">获取收藏夹</button>
+            <button class="btn" onclick="loadDemoData()">加载演示数据</button>
+        </div>
+
+        <div id="error-message" class="error" style="display:none;"></div>
+
+        <div class="favorites-list" id="favoritesList" style="display:none;">
+            <h3>📚 我的收藏夹</h3>
+            <div id="videosContainer"></div>
+        </div>
+
+        <div class="player-container" id="playerContainer" style="display:none;">
+            <div class="player-wrapper">
+                <iframe id="videoPlayer" allowfullscreen></iframe>
+            </div>
+            <div class="current-video-info">
+                <div class="current-video-title" id="currentVideoTitle"></div>
+                <div class="current-video-author" id="currentVideoAuthor"></div>
+            </div>
+            <div class="player-controls">
+                <button class="btn" onclick="playPrevious()">⏮️ 上一个</button>
+                <button class="btn" onclick="playNext()">⏭️ 下一个</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentVideoIndex = 0;
+        let currentPlaylist = [];
+        let loginInterval = null;
+        let isLoggedIn = false;
+
+        // 登录相关代码
+        const btn = document.getElementById('btn-login');
+        const qrImg = document.getElementById('qr-img');
+        const qrContainer = document.getElementById('qr-container');
+        const loginStatus = document.getElementById('login-status');
+        const debugInfo = document.getElementById('debug-info');
+
+        // 调试函数
+        function showDebugInfo(message) {
+            debugInfo.textContent = message;
+            debugInfo.style.display = 'block';
+            console.log('Debug:', message);
+        }
+
+        btn.addEventListener('click', async () => {
+            try {
+                console.log('开始登录流程...');
+                
+                // 重置状态
+                btn.disabled = true;
+                btn.textContent = '正在获取二维码...';
+                qrContainer.style.display = 'none';
+                
+                showDebugInfo('正在请求 /auth/qrkey...');
+                
+                // 1. 获取二维码 URL
+                const response = await fetch('/auth/qrkey');
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Response error:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                showDebugInfo('API响应: ' + JSON.stringify(data));
+                
+                // 检查响应格式
+                if (!data.success) {
+                    throw new Error(data.message || '获取二维码失败');
+                }
+                
+                if (!data.qrUrl) {
+                    throw new Error('响应中没有qrUrl字段');
+                }
+                
+                // 设置二维码图片
+                qrImg.src = data.qrUrl;
+                qrImg.onload = () => {
+                    console.log('二维码图片加载成功');
+                    showDebugInfo('二维码图片加载成功');
+                };
+                qrImg.onerror = () => {
+                    console.error('二维码图片加载失败');
+                    showDebugInfo('二维码图片加载失败');
+                };
+                
+                // 显示二维码容器
+                qrContainer.style.display = 'block';
+                
+                // 更新状态
+                loginStatus.textContent = '请使用B站手机客户端扫码登录';
+                loginStatus.className = 'login-status waiting';
+                btn.textContent = '请扫码登录';
+                
+                // 2. 开始轮询
+                startPolling();
+                
+            } catch (error) {
+                console.error('登录失败:', error);
+                showLoginError('获取二维码失败: ' + error.message);
+                showDebugInfo('错误: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = '扫码登录 B 站';
+            }
+        });
+
+        function startPolling() {
+            if (loginInterval) {
+                clearInterval(loginInterval);
+            }
+            
+            console.log('开始轮询登录状态...');
+            
+            loginInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/auth/qrstatus');
+                    if (!response.ok) {
+                        throw new Error('检查登录状态失败');
+                    }
+                    
+                    const status = await response.json();
+                    console.log('轮询状态:', status);
+                    
+                    if (!status.success) {
+                        throw new Error(status.message || '状态检查失败');
+                    }
+                    
+                    // 根据B站API文档，状态码含义：
+                    // 0: 扫码登录成功
+                    // 86101: 未扫码
+                    // 86090: 已扫码未确认  
+                    // 86038: 二维码已失效
+                    
+                    if (status.code === 0) {
+                        // 登录成功
+                        console.log('登录成功！');
+                        clearInterval(loginInterval);
+                        loginInterval = null;
+                        isLoggedIn = true;
+                        
+                        loginStatus.textContent = '登录成功！';
+                        loginStatus.className = 'login-status success';
+                        btn.textContent = '已登录';
+                        btn.disabled = true;
+                        
+                        showDebugInfo('登录成功');
+                        
+                        // 隐藏二维码
+                        setTimeout(() => {
+                            qrContainer.style.display = 'none';
+                        }, 2000);
+                        
+                    } else if (status.code === 86101) {
+                        // 未扫码
+                        loginStatus.textContent = '等待扫码...';
+                        loginStatus.className = 'login-status waiting';
+                        
+                    } else if (status.code === 86090) {
+                        // 已扫码未确认
+                        loginStatus.textContent = '已扫码，请在手机上确认';
+                        loginStatus.className = 'login-status waiting';
+                        
+                    } else if (status.code === 86038) {
+                        // 二维码过期
+                        clearInterval(loginInterval);
+                        loginInterval = null;
+                        showLoginError('二维码已过期，请重新登录');
+                        
+                    } else {
+                        // 其他状态
+                        loginStatus.textContent = '登录状态: ' + (status.message || `Code: ${status.code}`);
+                        loginStatus.className = 'login-status waiting';
+                        showDebugInfo('状态码: ' + status.code + ', 消息: ' + status.message);
+                    }
+                    
+                } catch (error) {
+                    console.error('轮询登录状态失败:', error);
+                    clearInterval(loginInterval);
+                    loginInterval = null;
+                    showLoginError('检查登录状态失败: ' + error.message);
+                }
+            }, 2000);
+        }
+
+        function showLoginError(message) {
+            loginStatus.textContent = message;
+            loginStatus.className = 'login-status error';
+            btn.disabled = false;
+            btn.textContent = '扫码登录 B 站';
+            // 不隐藏二维码容器，让用户看到错误信息
+        }
+
+        // 模拟数据
+        const mockData = {
+            favorites: [
+                {
+                    id: 'BV1xx411c7mu',
+                    title: '【技术分享】前端开发最佳实践',
+                    author: '前端技术分享',
+                    thumbnail: '',
+                    duration: '12:34'
+                },
+                {
+                    id: 'BV1yy411c7mu',
+                    title: '【编程教程】JavaScript从入门到精通',
+                    author: '编程学习站',
+                    thumbnail: '',
+                    duration: '25:18'
+                },
+                {
+                    id: 'BV1zz411c7mu',
+                    title: '【设计分享】UI设计的艺术与科学',
+                    author: '设计师小张',
+                    thumbnail: '',
+                    duration: '18:45'
+                },
+                {
+                    id: 'BV1aa411c7mu',
+                    title: '【技术解析】现代Web开发工具链',
+                    author: '技术探索者',
+                    thumbnail: '',
+                    duration: '32:12'
+                },
+                {
+                    id: 'BV1bb411c7mu',
+                    title: '【项目实战】全栈开发实战项目',
+                    author: '全栈开发',
+                    thumbnail: '',
+                    duration: '45:30'
+                }
+            ]
+        };
+
+        // 加载收藏夹
+        async function loadFavorites() {
+            const userId = document.getElementById('userId').value;
+            
+            if (!userId) {
+                showError('请输入用户ID');
+                return;
+            }
+
+            hideError();
+            showLoading('正在获取收藏夹...');
+
+            try {
+                const response = await fetch(`/api/favorites/${userId}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.message || '获取收藏夹失败');
+                }
+
+                if (data.data.length === 0) {
+                    showError('该用户没有公开的收藏夹');
+                    return;
+                }
+
+                // 获取第一个收藏夹的视频
+                const firstFavorite = data.data[0];
+                await loadFavoriteVideos(userId, firstFavorite.id);
+                
+            } catch (error) {
+                console.error('Error loading favorites:', error);
+                showError('获取收藏夹失败: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 加载收藏夹中的视频
+        async function loadFavoriteVideos(userId, favoriteId) {
+            showLoading('正在加载视频列表...');
+            
+            try {
+                const response = await fetch(`/api/favorites/${userId}/${favoriteId}/videos`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.message || '获取视频列表失败');
+                }
+
+                currentPlaylist = data.data;
+                displayVideos(currentPlaylist);
+                document.getElementById('favoritesList').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error loading videos:', error);
+                showError('获取视频列表失败: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // 加载演示数据
+        function loadDemoData() {
+            currentPlaylist = mockData.favorites;
+            displayVideos(currentPlaylist);
+            document.getElementById('favoritesList').style.display = 'block';
+            hideError();
+        }
+
+        // 显示视频列表
+        function displayVideos(videos) {
+            const container = document.getElementById('videosContainer');
+            container.innerHTML = '';
+
+            videos.forEach((video, index) => {
+                const videoElement = document.createElement('div');
+                videoElement.className = 'video-item';
+                videoElement.onclick = () => playVideo(video, index);
+                
+                // 处理缩略图
+                const thumbnailContent = video.thumbnail && video.thumbnail !== '' 
+                    ? `background-image: url('${video.thumbnail}');` 
+                    : '';
+                
+                videoElement.innerHTML = `
+                    <div class="video-thumbnail" style="${thumbnailContent}">
+                        ${!video.thumbnail || video.thumbnail === '' ? video.duration : ''}
+                    </div>
+                    <div class="video-info">
+                        <div class="video-title">${video.title}</div>
+                        <div class="video-author">UP主: ${video.author}</div>
+                    </div>
+                `;
+                
+                container.appendChild(videoElement);
+            });
+        }
+
+        // 播放视频
+        function playVideo(video, index) {
+            // 更新当前播放索引
+            currentVideoIndex = index;
+            
+            // 更新视频列表中的激活状态
+            const videoItems = document.querySelectorAll('.video-item');
+            videoItems.forEach(item => item.classList.remove('active'));
+            videoItems[index].classList.add('active');
+            
+            // 构建B站嵌入式播放器URL
+            const embedUrl = `https://player.bilibili.com/player.html?bvid=${video.id}&page=1&high_quality=1&danmaku=0`;
+            
+            // 设置播放器
+            const player = document.getElementById('videoPlayer');
+            player.src = embedUrl;
+            
+            // 更新当前播放视频信息
+            document.getElementById('currentVideoTitle').textContent = video.title;
+            document.getElementById('currentVideoAuthor').textContent = `UP主: ${video.author}`;
+            
+            // 显示播放器
+            document.getElementById('playerContainer').style.display = 'block';
+            
+            // 滚动到播放器位置
+            document.getElementById('playerContainer').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 自动播放下一个视频
+        function playNext() {
+            if (currentVideoIndex < currentPlaylist.length - 1) {
+                const nextVideo = currentPlaylist[currentVideoIndex + 1];
+                playVideo(nextVideo, currentVideoIndex + 1);
+            } else {
+                alert('已经是最后一个视频了');
+            }
+        }
+
+        // 播放上一个视频
+        function playPrevious() {
+            if (currentVideoIndex > 0) {
+                const prevVideo = currentPlaylist[currentVideoIndex - 1];
+                playVideo(prevVideo, currentVideoIndex - 1);
+            } else {
+                alert('已经是第一个视频了');
+            }
+        }
+
+        // 显示加载状态
+        function showLoading(message) {
+            const container = document.getElementById('videosContainer');
+            container.innerHTML = `<div class="loading">${message}</div>`;
+        }
+
+        // 隐藏加载状态
+        function hideLoading() {
+            // 加载状态会在displayVideos时被替换
+        }
+
+        // 显示错误信息
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // 隐藏错误信息
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        // 键盘快捷键支持
+        document.addEventListener('keydown', function(e) {
+            if (currentPlaylist.length > 0) {
+                switch(e.key) {
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        playNext();
+                        break;
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        playPrevious();
+                        break;
+                }
+            }
+        });
+
+        // 页面加载时显示使用提示
+        window.onload = function() {
+            console.log('哔哩哔哩沉浸式播放器已加载');
+        };
+
+        // 页面卸载时清理定时器
+        window.onbeforeunload = function() {
+            if (loginInterval) {
+                clearInterval(loginInterval);
+            }
+        };
+    </script>
+</body>
+</html>
