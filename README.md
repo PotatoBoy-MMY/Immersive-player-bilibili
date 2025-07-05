@@ -220,6 +220,9 @@ A: 可能原因：
 - 网络连接问题
 - B站服务器问题
 
+### Q: 扫码登录时页面不显示二维码？
+A: 请确认已执行 `npm install` 安装依赖并通过 `npm run dev` 或 `npm start` 启动后端服务。本项目未包含 `node_modules` 目录，如未安装依赖将导致 `/auth/qrkey` 接口无法访问，从而无法获取二维码。
+
 ### Q: 如何获取B站用户ID？
 A: 访问用户主页，URL中的数字就是用户ID
 例如：`https://space.bilibili.com/123456` 中的 `123456`
